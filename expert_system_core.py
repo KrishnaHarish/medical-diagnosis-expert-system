@@ -13,6 +13,17 @@ class Rule:
     A rule consists of antecedents (IF part) and consequents (THEN part).
     """
     def __init__(self, name: str, antecedents: List[str], consequents: List[str], description: str = ""):
+        if not name:
+            raise ValueError("Rule name cannot be empty")
+        if not antecedents:
+            raise ValueError("Rule must have at least one antecedent")
+        if not consequents:
+            raise ValueError("Rule must have at least one consequent")
+        if not isinstance(antecedents, list) or not all(isinstance(a, str) for a in antecedents):
+            raise TypeError("Antecedents must be a list of strings")
+        if not isinstance(consequents, list) or not all(isinstance(c, str) for c in consequents):
+            raise TypeError("Consequents must be a list of strings")
+        
         self.name = name
         self.antecedents = antecedents  # List of conditions that must be true
         self.consequents = consequents  # List of facts to be asserted when rule fires
@@ -28,6 +39,17 @@ class Fact:
     A fact can have a confidence level and source information.
     """
     def __init__(self, statement: str, confidence: float = 1.0, source: str = ""):
+        if not statement:
+            raise ValueError("Fact statement cannot be empty")
+        if not isinstance(statement, str):
+            raise TypeError("Statement must be a string")
+        if not isinstance(confidence, (int, float)):
+            raise TypeError("Confidence must be a number")
+        if not 0.0 <= confidence <= 1.0:
+            raise ValueError("Confidence must be between 0.0 and 1.0")
+        if not isinstance(source, str):
+            raise TypeError("Source must be a string")
+            
         self.statement = statement
         self.confidence = confidence  # Confidence level (0.0 to 1.0)
         self.source = source  # Origin of the fact (user input, rule inference, etc.)
@@ -47,15 +69,33 @@ class ExpertSystem:
         
     def add_rule(self, rule: Rule) -> None:
         """Add a rule to the knowledge base."""
+        if not isinstance(rule, Rule):
+            raise TypeError("Expected Rule object")
+        if not rule.name:
+            raise ValueError("Rule name cannot be empty")
+        if not rule.antecedents:
+            raise ValueError("Rule must have at least one antecedent")
+        if not rule.consequents:
+            raise ValueError("Rule must have at least one consequent")
         self.rules[rule.name] = rule
         
     def add_fact(self, fact: Fact) -> None:
         """Add a fact to the working memory."""
+        if not isinstance(fact, Fact):
+            raise TypeError("Expected Fact object")
+        if not fact.statement:
+            raise ValueError("Fact statement cannot be empty")
+        if not 0.0 <= fact.confidence <= 1.0:
+            raise ValueError("Fact confidence must be between 0.0 and 1.0")
         self.facts[fact.statement] = fact
         
     def clear_facts(self) -> None:
         """Clear all facts from working memory."""
         self.facts = {}
+        
+    def clear_rules(self) -> None:
+        """Clear all rules from the knowledge base."""
+        self.rules = {}
         
     def clear_inference_trace(self) -> None:
         """Clear the inference trace."""
@@ -64,6 +104,18 @@ class ExpertSystem:
     def fact_exists(self, statement: str) -> bool:
         """Check if a fact exists in the working memory."""
         return statement in self.facts
+    
+    def rule_exists(self, name: str) -> bool:
+        """Check if a rule exists in the knowledge base."""
+        return name in self.rules
+    
+    def get_rules(self) -> Dict[str, Rule]:
+        """Get all rules in the knowledge base."""
+        return self.rules.copy()
+    
+    def get_facts(self) -> Dict[str, Fact]:
+        """Get all facts in the working memory."""
+        return self.facts.copy()
     
     def forward_chain(self) -> List[Dict[str, Any]]:
         """
@@ -224,7 +276,7 @@ class ExpertSystem:
             return [{"explanation": f"Fact '{fact_statement}' does not exist in working memory."}]
         
         fact = self.facts[fact_statement]
-        if fact.source == "":
+        if fact.source == "" or fact.source.startswith("user input"):
             return [{"explanation": f"Fact '{fact_statement}' was directly provided as input."}]
             
         explanation = []
